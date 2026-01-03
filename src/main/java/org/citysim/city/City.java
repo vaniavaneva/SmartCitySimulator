@@ -1,0 +1,55 @@
+package org.citysim.city;
+
+import org.citysim.concurent.CityThreadPool;
+import org.citysim.devices.*;
+import org.citysim.events.CityEventType;
+import org.citysim.observers.CityEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class City {
+    private final List<CityDevice> devices = new ArrayList<>();
+    private final List<CityEventListener> listeners = new CopyOnWriteArrayList<>();
+    private CityThreadPool pool;
+
+    public void setThreadPool(CityThreadPool pool){
+        this.pool = pool;
+    }
+
+    public CityThreadPool getThreadPool() {
+        return pool;
+    }
+
+    public void addDevice(CityDevice device) {
+        device.setCity(this);
+        devices.add(device);
+    }
+
+    public List<CityDevice> getAllDevices() {
+        return new ArrayList<>(devices);
+    }
+
+    public void addListener(CityEventListener listener) {
+        listeners.add(listener);
+    }
+
+    /*public void notifyListeners(CityDevice device, String message) {
+        for (CityEventListener listener : listeners) {
+            listener.onStatus(device, message);
+        }
+    }*/
+
+    public void notifyListeners(CityDevice device, CityEventType type, String message) {
+        for (CityEventListener listener : listeners) {
+            listener.onEvent(device, type, message);
+        }
+    }
+
+    public void startSimulation(){
+        for(CityDevice device : devices){
+            device.schedule(pool);
+        }
+    }
+}
