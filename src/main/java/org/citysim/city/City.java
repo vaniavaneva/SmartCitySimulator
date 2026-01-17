@@ -1,6 +1,6 @@
 package org.citysim.city;
 
-import org.citysim.concurent.CityThreadPool;
+import org.citysim.concurrent.CityThreadPool;
 import org.citysim.devices.*;
 import org.citysim.events.CityEventType;
 import org.citysim.observers.CityEventListener;
@@ -49,7 +49,11 @@ public class City {
 
     public void startSimulation(){
         for(CityDevice device : devices){
-            device.schedule(pool);
+            if (device instanceof TrafficLight) {
+                ((TrafficLight) device).performAction();
+            } else {
+                device.schedule(pool);
+            }
         }
     }
 }

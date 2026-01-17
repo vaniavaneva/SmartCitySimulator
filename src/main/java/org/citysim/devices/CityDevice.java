@@ -1,7 +1,7 @@
 package org.citysim.devices;
 
 import org.citysim.city.City;
-import org.citysim.concurent.CityThreadPool;
+import org.citysim.concurrent.CityThreadPool;
 import org.citysim.events.CityEventType;
 import org.citysim.factory.DeviceType;
 
@@ -50,11 +50,15 @@ public abstract class CityDevice {
         }
     }
 
-    public void schedule(CityThreadPool pool){
-        future = pool.getScheduler().schedule(() -> {
-            performAction();
-            schedule(pool);
-        }, intervalSeconds, TimeUnit.SECONDS);
+    public void schedule(CityThreadPool pool) {
+        int initialDelay = (int)(Math.random() * intervalSeconds);
+
+        future = pool.getScheduler().scheduleAtFixedRate(
+                this::performAction,
+                initialDelay,
+                intervalSeconds,
+                TimeUnit.SECONDS
+        );
     }
 
     public abstract void performAction();

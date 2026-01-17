@@ -5,9 +5,10 @@ import org.citysim.factory.DeviceType;
 import org.citysim.strategies.traffic.TrafficStrategy;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class TrafficLight extends CityDevice{
-    private volatile String state = "RED";
+    private volatile TrafficLightState state = TrafficLightState.RED;
     private TrafficStrategy strategy;
 
     public TrafficLight(String id) {
@@ -20,31 +21,24 @@ public class TrafficLight extends CityDevice{
 
     @Override
     public void performAction() {
-        if(strategy==null){
-            getCity().notifyListeners(this, CityEventType.ALERT, "No strategy set.");
-            return;
+        if(strategy == null) return;
+
+        switch (state) {
+            case RED -> state = TrafficLightState.GREEN;
+            case GREEN -> state = TrafficLightState.YELLOW;
+            case YELLOW -> state = TrafficLightState.RED;
         }
 
-        switch (state){
-            case "RED" -> state = "GREEN";
-            case "GREEN" -> state = "YELLOW";
-            case "YELLOW" -> state = "RED";
-        }
+        int nextInterval = strategy.computeGreenTime(state);
 
-        int newInterval = strategy.computeGreenTime(state);
-        if(newInterval != this.intervalSeconds) {
-            this.intervalSeconds = newInterval;
+        future = getCity().getThreadPool().getScheduler().schedule(
+                this::performAction,
+                nextInterval,
+                TimeUnit.SECONDS
+        );
 
-            reschedule();
-        }
         getCity().notifyListeners(this, CityEventType.TRAFFIC_LIGHT_CHANGE,
-                "Light changed to: " + state + " (next change in " + newInterval + "s)");
-    }
+                "Light changed to: " + state + " (next change in " + nextInterval + "s)");
 
-    private void reschedule() {
-        if(future != null) {
-            future.cancel(false);
-        }
-        schedule(getCity().getThreadPool());
     }
 }

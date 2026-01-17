@@ -1,10 +1,10 @@
 package org.citysim.strategies.air;
 
-import java.util.List;
+import java.util.Deque;
 
 public class PeakDetectionStrategy implements AirAnalysisStrategy{
     @Override
-    public double analyzeQuality(List<Double> measurements) {
+    public double analyzeQuality(Deque<Double> measurements) {
         if(measurements.isEmpty()) return 0;
         double max = 0;
 

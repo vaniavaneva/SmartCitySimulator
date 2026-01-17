@@ -1,5 +1,7 @@
 package org.citysim.strategies.traffic;
 
+import org.citysim.devices.TrafficLightState;
+
 import static java.lang.Math.log;
 
 public class AdaptiveTrafficStrategy implements TrafficStrategy{
@@ -35,8 +37,8 @@ public class AdaptiveTrafficStrategy implements TrafficStrategy{
     }
 
     @Override
-    public int computeGreenTime(String state) {
-        if (state.equals("YELLOW")) return 1;
+    public int computeGreenTime(TrafficLightState state) {
+        if (state == TrafficLightState.YELLOW) return 1;
 
         int current = getCurrentVehicleCount();
         double weightedCount = calculateWeightedVehicleCount(current);

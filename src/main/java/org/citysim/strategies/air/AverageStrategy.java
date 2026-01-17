@@ -1,25 +1,26 @@
 package org.citysim.strategies.air;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.Deque;
 
 public class AverageStrategy implements AirAnalysisStrategy{
     @Override
-    public double analyzeQuality(List<Double> measurements) {
-        if(Objects.isNull(measurements) || measurements.isEmpty()) return 0;
+    public double analyzeQuality(Deque<Double> measurements) {
+        if(measurements == null || measurements.isEmpty()) return 0;
 
         double weightedSum = 0;
         double totalWeight = 0;
+        int weight = 1;
+
         int n = measurements.size();
 
-        for(int i = 0; i < n; i++) {
-            double value = measurements.get(i);
-            if(value > 0){
-                int weight = i + 1;
+        for(Double value : measurements) {
+            if(value > 0) {
                 weightedSum += value * weight;
                 totalWeight += weight;
             }
+            weight++;
         }
+
         return weightedSum / totalWeight;
     }
 }

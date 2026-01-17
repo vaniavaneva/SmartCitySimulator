@@ -1,18 +1,20 @@
 package org.citysim.devices;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.citysim.util.ConfigLoader;
 import org.citysim.events.CityEventType;
 import org.citysim.factory.DeviceType;
 
 public class BikeStation extends CityDevice{
-    private int bikesAvailable;
+    private final AtomicInteger bikesAvailable = new AtomicInteger(0);
     private int capacity;
-    private int chargers;
-    private List<ScheduledFuture<?>> chargingSlots = new ArrayList<>();
+    private final AtomicInteger chargers = new AtomicInteger(0);
+    private final List<ScheduledFuture<?>> chargingSlots = new CopyOnWriteArrayList();
 
     private static final double RENT_PROBABILITY = ConfigLoader.getDouble("bike.rent.probability");
     private static final double RETURN_PROBABILITY = ConfigLoader.getDouble("bike.rent.probability");
@@ -20,26 +22,26 @@ public class BikeStation extends CityDevice{
     private static final int MAX_CHARGE_TIME_SEC = ConfigLoader.getInt("max.charge");
 
     public BikeStation(String id) {
-        super(id, 7, DeviceType.BIKE_STATION);
+        super(id, 17, DeviceType.BIKE_STATION);
     }
 
     public void setBikesAvailable(int bikes){
         if(bikes > capacity) throw new IllegalArgumentException("Available bikes should be <= capacity");
-        bikesAvailable = bikes;
+        bikesAvailable.set(bikes);
     }
 
     public void setCapacity(int capacity){
-        if(capacity < bikesAvailable) throw new IllegalArgumentException("Capacity should be >= bikes available");
+        if(capacity < bikesAvailable.get()) throw new IllegalArgumentException("Capacity should be >= bikes available");
         this.capacity = capacity;
     }
 
     public void setChargers(int chargers){
         if(chargers <= 0) throw new IllegalArgumentException("Chargers can't be <= 0");
-        this.chargers = chargers;
+        this.chargers.set(chargers);
     }
 
     public synchronized int getBikesAvailable() {
-        return bikesAvailable;
+        return bikesAvailable.get();
     }
 
     public int getCapacity() {
@@ -47,7 +49,7 @@ public class BikeStation extends CityDevice{
     }
 
     public int getChargers(){
-        return chargers;
+        return chargers.get();
     }
 
     @Override
@@ -55,16 +57,16 @@ public class BikeStation extends CityDevice{
         double chance = Math.random(); //0-1
 
         if(chance < RENT_PROBABILITY){ //40% rent
-            if(bikesAvailable > 0){
-                bikesAvailable--;
+            if(bikesAvailable.get() > 0){
+                bikesAvailable.decrementAndGet();
                 getCity().notifyListeners(this, CityEventType.BIKE_RENTED,
                         "Bike rented | Available: " + bikesAvailable);
             } else {
                 getCity().notifyListeners(this, CityEventType.ALERT, "No bikes available");
             }
         } else if(chance < RENT_PROBABILITY + RETURN_PROBABILITY){ //40% return
-            if(bikesAvailable < capacity){
-                bikesAvailable++;
+            if(bikesAvailable.get() < capacity){
+                bikesAvailable.incrementAndGet();
                 getCity().notifyListeners(this, CityEventType.BIKE_RETURNED,
                         "Bike returned | Available: " + bikesAvailable);
             } else {
@@ -72,7 +74,7 @@ public class BikeStation extends CityDevice{
                         "Station full, cannot return bike");
             }
         } else { //20% electric bike charging
-            if(chargers > 0){
+            if(chargers.get() > 0){
                 startCharging();
             } else{
                 getCity().notifyListeners(this, CityEventType.ALERT,
@@ -80,25 +82,25 @@ public class BikeStation extends CityDevice{
             }
         }
 
-        if(bikesAvailable <= 1){
+        if(bikesAvailable.get() <= 1){
             getCity().notifyListeners(this, CityEventType.ALERT,
                     "Bike levels low (" + bikesAvailable + ")");
         }
-        if(chargers <= 1){
+        if(chargers.get() <= 1){
             getCity().notifyListeners(this, CityEventType.ALERT,
                     "Charger levels low (" + chargers + ")");
         }
     }
 
     private void startCharging(){
-        chargers--;
+        chargers.decrementAndGet();
         int chargeTime = (int)(Math.random() * (MAX_CHARGE_TIME_SEC - MIN_CHARGE_TIME_SEC + 1) + MIN_CHARGE_TIME_SEC); //20-30
 
         getCity().notifyListeners(this, CityEventType.BIKE_CHARGING,
                 "Electric bike charging | ETC: " + chargeTime + "s");
 
         ScheduledFuture<?> future = getCity().getThreadPool().getScheduler().schedule(() -> {
-            chargers++;
+            chargers.incrementAndGet();
             getCity().notifyListeners(this, CityEventType.STATUS,
                     "Charging complete. Chargers available: " + chargers);
         }, chargeTime, TimeUnit.SECONDS);

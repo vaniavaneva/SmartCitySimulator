@@ -1,7 +1,7 @@
 package org.citysim.strategies.air;
 
-import java.util.List;
+import java.util.Deque;
 
 public interface AirAnalysisStrategy {
-    double analyzeQuality(List<Double> measurements);
+    double analyzeQuality(Deque<Double> measurements);
 }

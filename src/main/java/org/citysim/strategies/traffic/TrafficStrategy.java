@@ -1,5 +1,7 @@
 package org.citysim.strategies.traffic;
 
+import org.citysim.devices.TrafficLightState;
+
 public interface TrafficStrategy {
-    int computeGreenTime(String state);
+    int computeGreenTime(TrafficLightState state);
 }
